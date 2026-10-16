@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tríade — Avaliação da Gestão (CLTs)</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  body { background:#f0f2f5; min-height:100vh; padding:16px; }
+  .card { max-width:480px; margin:0 auto; background:#fff; border-radius:16px; padding:24px 20px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  .logo { text-align:center; font-size:13px; font-weight:700; letter-spacing:2px; color:#7c3aed; margin-bottom:4px; }
+  h1 { text-align:center; font-size:20px; color:#1e293b; margin-bottom:6px; }
+  .sub { text-align:center; font-size:13px; color:#64748b; margin-bottom:18px; }
+  .info { background:#f5f3ff; border:1px solid #ddd6fe; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#5b21b6; margin-bottom:18px; }
+  label { display:block; font-size:13px; font-weight:600; color:#334155; margin:14px 0 6px; }
+  select, textarea { width:100%; padding:12px; font-size:15px; border:1.5px solid #cbd5e1; border-radius:10px; background:#fff; color:#0f172a; }
+  select:focus, textarea:focus { outline:none; border-color:#7c3aed; }
+  textarea { min-height:90px; resize:vertical; }
+  .hint { font-size:11.5px; color:#94a3b8; margin-top:4px; }
+  button { width:100%; margin-top:20px; padding:14px; font-size:16px; font-weight:700; color:#fff; background:#7c3aed; border:none; border-radius:12px; cursor:pointer; }
+  button:active { opacity:.85; }
+  button:disabled { background:#c4b5fd; }
+  .ok { display:none; text-align:center; padding:30px 10px; }
+  .ok .check { font-size:48px; }
+  .ok h2 { font-size:19px; color:#166534; margin:10px 0 6px; }
+  .ok p { font-size:13.5px; color:#64748b; margin-bottom:16px; }
+  .ok button { background:#16a34a; }
+  .err { display:none; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:10px; padding:10px 12px; font-size:13px; margin-top:12px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="form-view">
+    <div class="logo">TRÍADE ESPAÇO TERAPÊUTICO</div>
+    <h1>Avaliação da Gestão — CLTs</h1>
+    <p class="sub">Avaliação opinativa para hierarquização · Anônima</p>
+    <div class="info">
+      <b>Resposta anônima.</b> Nenhum nome de quem responde é registrado. Escolha a área, indique quem você considera o melhor da área e escreva uma breve justificativa.
+    </div>
+    <label for="area">Área / cargo avaliado</label>
+    <select id="area"></select>
+    <label for="escolhido">Na sua opinião, quem é o melhor dessa área?</label>
+    <select id="escolhido"><option value="">— selecione o nome —</option></select>
+    <p class="hint" id="nomeHint">A lista de nomes aparece conforme a área. Se o nome não estiver na lista, escolha "Outro (digitar)" e escreva.</p>
+    <label for="justificativa">Justificativa (obrigatória)</label>
+    <textarea id="justificativa" placeholder="Por que essa pessoa é a melhor da área? Dê um exemplo concreto."></textarea>
+    <div class="err" id="err"></div>
+    <button id="btn" onclick="enviar()">Enviar avaliação</button>
+  </div>
+  <div class="ok" id="ok-view">
+    <div class="check">✅</div>
+    <h2>Avaliação enviada!</h2>
+    <p>Obrigado. Sua resposta foi registrada anonimamente.</p>
+    <button onclick="location.reload()">Enviar outra avaliação</button>
+  </div>
+</div>
+<script type="application/json" id="nomes-data">{}</script>
+<script>
+var WEBHOOK_URL = "https://maestro.adapta.one/webhooks/generic/036c9ea2e5b2a1441d439f64ca405ad14650a3c54958d66342c7109ca0a5ff61?secret=e61a0bf8e6f8f30509b313109bebe5628cc9cc3a3801dec9665ccc556c3b10b2";
+var NOMES = {};
+try { NOMES = JSON.parse(document.getElementById("nomes-data").textContent); } catch(e) {}
+var params = new URLSearchParams(location.search);
+var areaSel = document.getElementById("area");
+var escSel = document.getElementById("escolhido");
+
+function fillAreas() {
+  var areas = Object.keys(NOMES);
+  if (areas.length === 0) {
+    areaSel.innerHTML = '<option value="Geral">Geral (todas as áreas)</option>';
+  } else {
+    areaSel.innerHTML = '<option value="">— selecione a área —</option>';
+    areas.forEach(function(a){ var o=document.createElement("option"); o.value=a; o.textContent=a; areaSel.appendChild(o); });
+  }
+}
+function fillNomes(area) {
+  escSel.innerHTML = '<option value="">— selecione o nome —</option>';
+  var nomes = (NOMES[area] || []);
+  nomes.forEach(function(n){ var o=document.createElement("option"); o.value=n; o.textContent=n; escSel.appendChild(o); });
+  var o2=document.createElement("option"); o2.value="__OUTRO__"; o2.textContent="Outro (digitar nome)"; escSel.appendChild(o2);
+}
+areaSel.addEventListener("change", function(){ fillNomes(areaSel.value); });
+fillAreas();
+
+var preArea = params.get("area");
+if (preArea && (Object.keys(NOMES).length === 0 || NOMES[preArea])) {
+  areaSel.value = preArea;
+  fillNomes(preArea);
+  areaSel.classList.add("locked");
+  areaSel.disabled = true;
+}
+
+function mostrarErro(msg) {
+  var e = document.getElementById("err");
+  e.textContent = msg; e.style.display = "block";
+}
+function enviar() {
+  document.getElementById("err").style.display = "none";
+  var area = areaSel.value;
+  var esc = escSel.value;
+  var just = document.getElementById("justificativa").value.trim();
+  if (!area) return mostrarErro("Selecione a área avaliada.");
+  if (!esc) return mostrarErro("Selecione quem você considera o melhor da área.");
+  if (esc === "__OUTRO__") {
+    esc = prompt("Digite o nome da pessoa:");
+    if (!esc || !esc.trim()) return mostrarErro("Digite o nome da pessoa escolhida.");
+    esc = esc.trim();
+  }
+  if (just.length < 10) return mostrarErro("Escreva uma justificativa com pelo menos 10 caracteres.");
+  var btn = document.getElementById("btn");
+  btn.disabled = true; btn.textContent = "Enviando...";
+  var payload = JSON.stringify({ area: area, escolhido: esc, justificativa: just, enviado_em: new Date().toISOString() });
+  fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: payload })
+    .then(function(){ document.getElementById("form-view").classList.add("hidden"); document.getElementById("ok-view").style.display = "block"; })
+    .catch(function(){ btn.disabled = false; btn.textContent = "Enviar avaliação"; mostrarErro("Falha de conexão. Verifique sua internet e tente novamente."); });
+}
+</script>
+</body>
+</html>
