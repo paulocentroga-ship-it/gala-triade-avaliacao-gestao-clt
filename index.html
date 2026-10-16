@@ -16,6 +16,7 @@
   select, textarea { width:100%; padding:12px; font-size:15px; border:1.5px solid #cbd5e1; border-radius:10px; background:#fff; color:#0f172a; }
   select:focus, textarea:focus { outline:none; border-color:#7c3aed; }
   textarea { min-height:90px; resize:vertical; }
+  .locked { background:#f1f5f9; color:#475569; }
   .hint { font-size:11.5px; color:#94a3b8; margin-top:4px; }
   button { width:100%; margin-top:20px; padding:14px; font-size:16px; font-weight:700; color:#fff; background:#7c3aed; border:none; border-radius:12px; cursor:pointer; }
   button:active { opacity:.85; }
@@ -55,7 +56,14 @@
     <button onclick="location.reload()">Enviar outra avaliação</button>
   </div>
 </div>
-<script type="application/json" id="nomes-data">{}</script>
+<script type="application/json" id="nomes-data">
+{
+  "ASSISTENTE ADMINISTRATIVO": ["SAMANTHA LINHARES DOS SANTOS", "EDAINE DOS SANTOS MOTA E SILVA"],
+  "AUXILIAR ADMINISTRATIVO": ["EDUARDO PEREIRA DO NASCIMENTO", "ADRIANA MESQUITA DA SILVA", "QUEZIA ANNE BATISTA", "DANIELLA NASCIMENTO SILVA"],
+  "SECRETÁRIA": ["VIRGINIA HOLANDA DOS SANTOS", "LARISSA SOARES ANDRADE", "VITORIA BANDEIRA FERREIRA"],
+  "SERVIÇOS GERAIS": ["VANDA RODRIGUES ARAUJO", "MARIA ELOISA ALVES PEREIRA"]
+}
+</script>
 <script>
 var WEBHOOK_URL = "https://maestro.adapta.one/webhooks/generic/036c9ea2e5b2a1441d439f64ca405ad14650a3c54958d66342c7109ca0a5ff61?secret=e61a0bf8e6f8f30509b313109bebe5628cc9cc3a3801dec9665ccc556c3b10b2";
 var NOMES = {};
@@ -82,6 +90,7 @@ function fillNomes(area) {
 areaSel.addEventListener("change", function(){ fillNomes(areaSel.value); });
 fillAreas();
 
+// Prefill por URL: ?area=Assistente%20Administrativo
 var preArea = params.get("area");
 if (preArea && (Object.keys(NOMES).length === 0 || NOMES[preArea])) {
   areaSel.value = preArea;
@@ -112,7 +121,7 @@ function enviar() {
   var payload = JSON.stringify({ area: area, escolhido: esc, justificativa: just, enviado_em: new Date().toISOString() });
   fetch(WEBHOOK_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: payload })
     .then(function(){ document.getElementById("form-view").classList.add("hidden"); document.getElementById("ok-view").style.display = "block"; })
-    .catch(function(){ btn.disabled = false; btn.textContent = "Enviar avaliação"; mostrarErro("Falha de conexão. Verifique sua internet e tente novamente."); });
+    .catch(function(){ btn.disabled = false; btn.textContent = "Enviar avaliação"; mostrarErro("Falha de conexão. Verifique o internet e tente novamente."); });
 }
 </script>
 </body>
